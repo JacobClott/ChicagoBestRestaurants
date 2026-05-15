@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chicago's Best Restaurants</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&family=Archivo:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0d0c0b; --surface:#161412; --border:#2a2520; --gold:#c8a86b;
+    --gold-dim:#7a6540; --text:#e8e0d4; --muted:#7a7065;
+    --row-hover:#1c1915; --tag-bg:#211e1a;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Archivo',sans-serif;font-weight:300;min-height:100vh;padding:0 0 80px;}
+
+  /* Header */
+  .header{padding:60px 48px 40px;border-bottom:1px solid var(--border);position:relative;overflow:hidden;}
+  .header::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 100% at 50% -20%,rgba(200,168,107,0.07) 0%,transparent 70%);pointer-events:none;}
+  .header-eyebrow{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.25em;color:var(--gold);text-transform:uppercase;margin-bottom:16px;}
+  .header h1{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:clamp(40px,6vw,76px);line-height:0.95;letter-spacing:-0.01em;}
+  .header h1 em{font-style:italic;color:var(--gold);}
+  .header-meta{margin-top:20px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.1em;}
+  .header-meta span{color:var(--gold-dim);}
+
+  /* Controls */
+  .controls{padding:24px 48px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;background:rgba(13,12,11,0.97);backdrop-filter:blur(12px);}
+  .search-wrap{position:relative;flex:1;min-width:200px;max-width:320px;}
+  .search-wrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:14px;height:14px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;}
+  input[type="search"]{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'Archivo',sans-serif;font-size:12px;padding:9px 12px 9px 34px;border-radius:4px;outline:none;transition:border-color 0.2s;}
+  input[type="search"]:focus{border-color:var(--gold-dim);}
+  input[type="search"]::placeholder{color:var(--muted);}
+  .result-count{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-left:auto;white-space:nowrap;}
+  .result-count strong{color:var(--gold);}
+
+  /* Multi-select */
+  .ms-wrap{position:relative;}
+  .ms-trigger{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'Archivo',sans-serif;font-size:12px;padding:9px 12px;border-radius:4px;cursor:pointer;transition:border-color 0.2s;min-width:160px;white-space:nowrap;user-select:none;}
+  .ms-trigger:hover,.ms-trigger.open{border-color:var(--gold-dim);}
+  .ms-trigger-label{flex:1;}
+  .ms-badge{background:var(--gold);color:#0d0c0b;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;padding:2px 5px;border-radius:2px;line-height:1.4;}
+  .ms-chevron{width:10px;height:6px;fill:none;stroke:var(--muted);stroke-width:1.5;stroke-linecap:round;transition:transform 0.2s;flex-shrink:0;}
+  .ms-trigger.open .ms-chevron{transform:rotate(180deg);}
+  .ms-dropdown{display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:220px;max-width:280px;background:#1a1714;border:1px solid var(--border);border-radius:6px;box-shadow:0 8px 32px rgba(0,0,0,0.5);z-index:200;overflow:hidden;}
+  .ms-dropdown.open{display:block;}
+  .ms-search-wrap{padding:10px 12px 8px;border-bottom:1px solid var(--border);}
+  .ms-search{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'Archivo',sans-serif;font-size:11px;padding:6px 10px;border-radius:3px;outline:none;}
+  .ms-search::placeholder{color:var(--muted);}
+  .ms-search:focus{border-color:var(--gold-dim);}
+  .ms-actions{display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid var(--border);}
+  .ms-action-btn{background:none;border:none;color:var(--gold-dim);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;padding:2px 0;transition:color 0.15s;}
+  .ms-action-btn:hover{color:var(--gold);}
+  .ms-list{max-height:240px;overflow-y:auto;padding:6px 0;}
+  .ms-list::-webkit-scrollbar{width:4px;}
+  .ms-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+  .ms-option{display:flex;align-items:center;gap:10px;padding:7px 14px;cursor:pointer;transition:background 0.1s;font-size:12px;color:var(--text);}
+  .ms-option:hover{background:var(--row-hover);}
+  .ms-option.hidden-opt{display:none;}
+  .ms-checkbox{width:13px;height:13px;border:1px solid var(--border);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:background 0.15s,border-color 0.15s;}
+  .ms-option.checked .ms-checkbox{background:var(--gold);border-color:var(--gold);}
+  .ms-option.checked .ms-checkbox::after{content:'';display:block;width:7px;height:5px;border-left:1.5px solid #0d0c0b;border-bottom:1.5px solid #0d0c0b;transform:rotate(-45deg) translateY(-1px);}
+  .ms-count{margin-left:auto;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);}
+  .ms-empty{padding:14px;text-align:center;font-size:11px;color:var(--muted);font-style:italic;display:none;}
+
+  /* Table */
+  .table-wrap{padding:0 48px;overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;}
+  thead tr{border-bottom:1px solid var(--border);}
+  th{font-family:'DM Mono',monospace;font-size:9px;font-weight:400;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);padding:20px 16px 14px;text-align:left;white-space:nowrap;cursor:pointer;user-select:none;transition:color 0.15s;}
+  th:hover{color:var(--gold);}
+  th.sorted{color:var(--gold);}
+  th .sort-arrow{margin-left:4px;opacity:0.5;font-size:8px;}
+  th.sorted .sort-arrow{opacity:1;}
+  th:first-child{width:52px;text-align:center;}
+  th:last-child{text-align:right;width:80px;}
+  tbody tr{border-bottom:1px solid rgba(42,37,32,0.6);transition:background 0.12s;}
+  tbody tr:hover{background:var(--row-hover);}
+  tbody tr.hidden{display:none;}
+  td{padding:16px;vertical-align:top;font-size:13px;line-height:1.4;}
+  .td-rank{text-align:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);width:52px;padding-top:18px;}
+  .rank-top{color:var(--gold);font-weight:400;}
+  .td-name{min-width:180px;}
+  .rest-name{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:400;line-height:1.2;}
+  .td-nbhd{min-width:120px;color:var(--muted);font-size:12px;padding-top:18px;}
+  .td-price{white-space:nowrap;padding-top:18px;}
+  .price{font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.05em;}
+  .price-1{color:#7aad7a;}.price-2{color:#8fbfb0;}.price-3{color:#c8a86b;}.price-4{color:#d4836a;}
+  .td-cuisine{min-width:110px;font-size:12px;color:var(--muted);padding-top:18px;}
+  .td-lists{min-width:240px;max-width:340px;}
+  .tags{display:flex;flex-wrap:wrap;gap:5px;padding-top:4px;}
+  .tag{background:var(--tag-bg);border:1px solid var(--border);border-radius:2px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.06em;color:var(--muted);padding:3px 7px;white-space:nowrap;}
+  .tag.michelin-3{border-color:rgba(200,168,107,0.6);color:var(--gold);}
+  .tag.michelin-2{border-color:rgba(200,168,107,0.45);color:#b89a5a;}
+  .tag.michelin-1{border-color:rgba(200,168,107,0.25);color:#9a8250;}
+  .tag.bib{border-color:rgba(143,191,176,0.35);color:#6fa898;}
+  .tag.eater{border-color:rgba(180,100,80,0.4);color:#b46450;}
+  .tag.infatuation{border-color:rgba(120,140,200,0.35);color:#8090c0;}
+  .tag.chimag{border-color:rgba(160,130,190,0.35);color:#a082be;}
+  .tag.na50{border-color:rgba(200,168,107,0.5);color:#c8a86b;}
+  .td-points{text-align:right;white-space:nowrap;padding-top:14px;width:80px;}
+  .points-val{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:300;line-height:1;}
+  .points-bar-wrap{margin-top:5px;height:2px;background:var(--border);border-radius:1px;}
+  .points-bar{height:100%;background:var(--gold);border-radius:1px;}
+  .no-results{text-align:center;padding:80px 48px;color:var(--muted);font-family:'Cormorant Garamond',serif;font-size:20px;font-style:italic;display:none;}
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:var(--bg);}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-eyebrow">Consolidated Guide · 2025 / 2026</div>
+  <h1>Chicago's<br><em>Best Restaurants</em></h1>
+  <div class="header-meta">
+    <span>170</span> restaurants &nbsp;·&nbsp; weighted across <span>8</span> source lists &nbsp;·&nbsp;
+    Michelin · Eater 38 · Infatuation · North America's 50 Best · Chicago Magazine
+  </div>
+</div>
+
+<div class="controls">
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="search" id="search" placeholder="Search restaurants…">
+  </div>
+  <div class="ms-wrap" id="ms-nbhd-wrap">
+  <div class="ms-trigger" id="ms-nbhd-trigger">
+    <span class="ms-trigger-label">Neighborhood</span>
+    <svg class="ms-chevron" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+  </div>
+  <div class="ms-dropdown" id="ms-nbhd-dropdown">
+    <div class="ms-search-wrap"><input class="ms-search" type="text" placeholder="Search…"></div>
+    <div class="ms-actions">
+      <button class="ms-action-btn" data-action="all">Select all</button>
+      <button class="ms-action-btn" data-action="clear">Clear</button>
+    </div>
+    <div class="ms-list">
+      <div class="ms-option" data-val="Albany Park"><div class="ms-checkbox"></div><span>Albany Park</span><span class="ms-count">2</span></div>
+      <div class="ms-option" data-val="Andersonville"><div class="ms-checkbox"></div><span>Andersonville</span><span class="ms-count">2</span></div>
+      <div class="ms-option" data-val="Archer Heights"><div class="ms-checkbox"></div><span>Archer Heights</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Avondale"><div class="ms-checkbox"></div><span>Avondale</span><span class="ms-count">5</span></div>
+      <div class="ms-option" data-val="Beverly"><div class="ms-checkbox"></div><span>Beverly</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Bridgeport"><div class="ms-checkbox"></div><span>Bridgeport</span><span class="ms-count">2</span></div>
+      <div class="ms-option" data-val="Bucktown"><div class="ms-checkbox"></div><span>Bucktown</span><span class="ms-count">5</span></div>
+      <div class="ms-option" data-val="Chatham"><div class="ms-checkbox"></div><span>Chatham</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Chinatown"><div class="ms-checkbox"></div><span>Chinatown</span><span class="ms-count">2</span></div>
+      <div class="ms-option" data-val="Cragin"><div class="ms-checkbox"></div><span>Cragin</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Douglas Park"><div class="ms-checkbox"></div><span>Douglas Park</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Dunning"><div class="ms-checkbox"></div><span>Dunning</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Elmwood Park"><div class="ms-checkbox"></div><span>Elmwood Park</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Fulton Market"><div class="ms-checkbox"></div><span>Fulton Market</span><span class="ms-count">5</span></div>
+      <div class="ms-option" data-val="Galewood"><div class="ms-checkbox"></div><span>Galewood</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Gold Coast"><div class="ms-checkbox"></div><span>Gold Coast</span><span class="ms-count">3</span></div>
+      <div class="ms-option" data-val="Humboldt Park"><div class="ms-checkbox"></div><span>Humboldt Park</span><span class="ms-count">2</span></div>
+      <div class="ms-option" data-val="Hyde Park"><div class="ms-checkbox"></div><span>Hyde Park</span><span class="ms-count">3</span></div>
+      <div class="ms-option" data-val="Lakeview"><div class="ms-checkbox"></div><span>Lakeview</span><span class="ms-count">5</span></div>
+      <div class="ms-option" data-val="Lincoln Park"><div class="ms-checkbox"></div><span>Lincoln Park</span><span class="ms-count">11</span></div>
+      <div class="ms-option" data-val="Lincoln Square"><div class="ms-checkbox"></div><span>Lincoln Square</span><span class="ms-count">3</span></div>
+      <div class="ms-option" data-val="Little Italy"><div class="ms-checkbox"></div><span>Little Italy</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Logan Square"><div class="ms-checkbox"></div><span>Logan Square</span><span class="ms-count">25</span></div>
+      <div class="ms-option" data-val="Mayfair"><div class="ms-checkbox"></div><span>Mayfair</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="North Center"><div class="ms-checkbox"></div><span>North Center</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Old Town"><div class="ms-checkbox"></div><span>Old Town</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Pilsen"><div class="ms-checkbox"></div><span>Pilsen</span><span class="ms-count">6</span></div>
+      <div class="ms-option" data-val="Ravenswood"><div class="ms-checkbox"></div><span>Ravenswood</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Ravenswood Manor"><div class="ms-checkbox"></div><span>Ravenswood Manor</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="River North"><div class="ms-checkbox"></div><span>River North</span><span class="ms-count">18</span></div>
+      <div class="ms-option" data-val="South Loop"><div class="ms-checkbox"></div><span>South Loop</span><span class="ms-count">3</span></div>
+      <div class="ms-option" data-val="South Shore"><div class="ms-checkbox"></div><span>South Shore</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Streeterville"><div class="ms-checkbox"></div><span>Streeterville</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="The Loop"><div class="ms-checkbox"></div><span>The Loop</span><span class="ms-count">3</span></div>
+      <div class="ms-option" data-val="Ukrainian Village"><div class="ms-checkbox"></div><span>Ukrainian Village</span><span class="ms-count">3</span></div>
+      <div class="ms-option" data-val="University Village"><div class="ms-checkbox"></div><span>University Village</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Uptown"><div class="ms-checkbox"></div><span>Uptown</span><span class="ms-count">5</span></div>
+      <div class="ms-option" data-val="West Loop"><div class="ms-checkbox"></div><span>West Loop</span><span class="ms-count">19</span></div>
+      <div class="ms-option" data-val="West Town"><div class="ms-checkbox"></div><span>West Town</span><span class="ms-count">11</span></div>
+      <div class="ms-option" data-val="Wicker Park"><div class="ms-checkbox"></div><span>Wicker Park</span><span class="ms-count">10</span></div>
+      <div class="ms-empty">No matches</div>
+    </div>
+  </div>
+</div>
+  <div class="ms-wrap" id="ms-cuisine-wrap">
+  <div class="ms-trigger" id="ms-cuisine-trigger">
+    <span class="ms-trigger-label">Cuisine</span>
+    <svg class="ms-chevron" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+  </div>
+  <div class="ms-dropdown" id="ms-cuisine-dropdown">
+    <div class="ms-search-wrap"><input class="ms-search" type="text" placeholder="Search…"></div>
+    <div class="ms-actions">
+      <button class="ms-action-btn" data-action="all">Select all</button>
+      <button class="ms-action-btn" data-action="clear">Clear</button>
+    </div>
+    <div class="ms-list">
+      <div class="ms-option" data-val="African"><div class="ms-checkbox"></div><span>African</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="American"><div class="ms-checkbox"></div><span>American</span><span class="ms-count">29</span></div>
+      <div class="ms-option" data-val="Bakery"><div class="ms-checkbox"></div><span>Bakery</span><span class="ms-count">3</span></div>
+      <div class="ms-option" data-val="Balkan"><div class="ms-checkbox"></div><span>Balkan</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Bar"><div class="ms-checkbox"></div><span>Bar</span><span class="ms-count">4</span></div>
+      <div class="ms-option" data-val="Barbecue"><div class="ms-checkbox"></div><span>Barbecue</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="British"><div class="ms-checkbox"></div><span>British</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Cambodian"><div class="ms-checkbox"></div><span>Cambodian</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Chinese"><div class="ms-checkbox"></div><span>Chinese</span><span class="ms-count">3</span></div>
+      <div class="ms-option" data-val="Cocktail Bar"><div class="ms-checkbox"></div><span>Cocktail Bar</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Colombian"><div class="ms-checkbox"></div><span>Colombian</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Croatian"><div class="ms-checkbox"></div><span>Croatian</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Diner"><div class="ms-checkbox"></div><span>Diner</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Ethiopian"><div class="ms-checkbox"></div><span>Ethiopian</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Experimental"><div class="ms-checkbox"></div><span>Experimental</span><span class="ms-count">3</span></div>
+      <div class="ms-option" data-val="Filipino"><div class="ms-checkbox"></div><span>Filipino</span><span class="ms-count">2</span></div>
+      <div class="ms-option" data-val="French"><div class="ms-checkbox"></div><span>French</span><span class="ms-count">4</span></div>
+      <div class="ms-option" data-val="Fried Chicken"><div class="ms-checkbox"></div><span>Fried Chicken</span><span class="ms-count">2</span></div>
+      <div class="ms-option" data-val="Fusion"><div class="ms-checkbox"></div><span>Fusion</span><span class="ms-count">6</span></div>
+      <div class="ms-option" data-val="Gastropub"><div class="ms-checkbox"></div><span>Gastropub</span><span class="ms-count">3</span></div>
+      <div class="ms-option" data-val="Greek"><div class="ms-checkbox"></div><span>Greek</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Hawaiian"><div class="ms-checkbox"></div><span>Hawaiian</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Hot Dog / Burgers"><div class="ms-checkbox"></div><span>Hot Dog / Burgers</span><span class="ms-count">2</span></div>
+      <div class="ms-option" data-val="Indian"><div class="ms-checkbox"></div><span>Indian</span><span class="ms-count">5</span></div>
+      <div class="ms-option" data-val="Iranian"><div class="ms-checkbox"></div><span>Iranian</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Italian"><div class="ms-checkbox"></div><span>Italian</span><span class="ms-count">15</span></div>
+      <div class="ms-option" data-val="Japanese"><div class="ms-checkbox"></div><span>Japanese</span><span class="ms-count">5</span></div>
+      <div class="ms-option" data-val="Jewish American"><div class="ms-checkbox"></div><span>Jewish American</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Korean"><div class="ms-checkbox"></div><span>Korean</span><span class="ms-count">3</span></div>
+      <div class="ms-option" data-val="Kurdish"><div class="ms-checkbox"></div><span>Kurdish</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Mediterranean"><div class="ms-checkbox"></div><span>Mediterranean</span><span class="ms-count">2</span></div>
+      <div class="ms-option" data-val="Mexican"><div class="ms-checkbox"></div><span>Mexican</span><span class="ms-count">15</span></div>
+      <div class="ms-option" data-val="Middle Eastern"><div class="ms-checkbox"></div><span>Middle Eastern</span><span class="ms-count">2</span></div>
+      <div class="ms-option" data-val="Nepali"><div class="ms-checkbox"></div><span>Nepali</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Palestinian"><div class="ms-checkbox"></div><span>Palestinian</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Pizza"><div class="ms-checkbox"></div><span>Pizza</span><span class="ms-count">4</span></div>
+      <div class="ms-option" data-val="Puerto Rican"><div class="ms-checkbox"></div><span>Puerto Rican</span><span class="ms-count">2</span></div>
+      <div class="ms-option" data-val="Russian"><div class="ms-checkbox"></div><span>Russian</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Sandwiches"><div class="ms-checkbox"></div><span>Sandwiches</span><span class="ms-count">3</span></div>
+      <div class="ms-option" data-val="Scandinavian"><div class="ms-checkbox"></div><span>Scandinavian</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Seafood"><div class="ms-checkbox"></div><span>Seafood</span><span class="ms-count">2</span></div>
+      <div class="ms-option" data-val="Southeast Asian"><div class="ms-checkbox"></div><span>Southeast Asian</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Southern"><div class="ms-checkbox"></div><span>Southern</span><span class="ms-count">4</span></div>
+      <div class="ms-option" data-val="Spanish"><div class="ms-checkbox"></div><span>Spanish</span><span class="ms-count">3</span></div>
+      <div class="ms-option" data-val="Sri Lankan"><div class="ms-checkbox"></div><span>Sri Lankan</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Steakhouse"><div class="ms-checkbox"></div><span>Steakhouse</span><span class="ms-count">7</span></div>
+      <div class="ms-option" data-val="Sushi"><div class="ms-checkbox"></div><span>Sushi</span><span class="ms-count">8</span></div>
+      <div class="ms-option" data-val="Thai"><div class="ms-checkbox"></div><span>Thai</span><span class="ms-count">4</span></div>
+      <div class="ms-option" data-val="Ukrainian"><div class="ms-checkbox"></div><span>Ukrainian</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Vietnamese"><div class="ms-checkbox"></div><span>Vietnamese</span><span class="ms-count">1</span></div>
+      <div class="ms-option" data-val="Wine Bar"><div class="ms-checkbox"></div><span>Wine Bar</span><span class="ms-count">2</span></div>
+      <div class="ms-empty">No matches</div>
+    </div>
+  </div>
+</div>
+  <div class="ms-wrap" id="ms-price-wrap">
+  <div class="ms-trigger" id="ms-price-trigger">
+    <span class="ms-trigger-label">Price</span>
+    <svg class="ms-chevron" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke-linecap="round"/></svg>
+  </div>
+  <div class="ms-dropdown" id="ms-price-dropdown">
+    
+    <div class="ms-actions">
+      <button class="ms-action-btn" data-action="all">Select all</button>
+      <button class="ms-action-btn" data-action="clear">Clear</button>
+    </div>
+    <div class="ms-list">
+      <div class="ms-option" data-val="$"><div class="ms-checkbox"></div><span>$</span></div>
+      <div class="ms-option" data-val="$$"><div class="ms-checkbox"></div><span>$$</span></div>
+      <div class="ms-option" data-val="$$$"><div class="ms-checkbox"></div><span>$$$</span></div>
+      <div class="ms-option" data-val="$$$$"><div class="ms-checkbox"></div><span>$$$$</span></div>
+      <div class="ms-empty">No matches</div>
+    </div>
+  </div>
+</div>
+  <div class="result-count"><strong id="count">170</strong> restaurants</div>
+</div>
+
+<div class="table-wrap">
+  <table id="table">
+    <thead><tr>
+      <th data-col="rank">Rank <span class="sort-arrow">▲</span></th>
+      <th data-col="name">Restaurant <span class="sort-arrow"></span></th>
+      <th data-col="neighborhood">Neighborhood <span class="sort-arrow"></span></th>
+      <th data-col="price">Price <span class="sort-arrow"></span></th>
+      <th data-col="cuisine">Cuisine <span class="sort-arrow"></span></th>
+      <th>Lists Mentioned</th>
+      <th data-col="points">Points <span class="sort-arrow"></span></th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div class="no-results" id="no-results">No restaurants match your filters.</div>
+</div>
+
+<script>
+const RAW = [{"name": "Kasama", "neighborhood": "Ukrainian Village", "price": "$$$$", "cuisine": "Filipino", "lists": "Michelin ★★, Eater 38, ChiMag BNR, Infatuation 25, NA 50 Best", "points": 6.15}, {"name": "Cariño", "neighborhood": "Uptown", "price": "$$$$", "cuisine": "Mexican", "lists": "Michelin ★, Eater 38, ChiMag BNR, Infatuation 25", "points": 4.65}, {"name": "Nadu", "neighborhood": "Lincoln Park", "price": "$$$", "cuisine": "Indian", "lists": "Bib Gourmand, Eater 38, ChiMag BNR, Infatuation 25", "points": 4.4}, {"name": "Smyth", "neighborhood": "West Loop", "price": "$$$$", "cuisine": "American", "lists": "Michelin ★★★, Eater 38, NA 50 Best", "points": 4.2}, {"name": "Maxwells Trading", "neighborhood": "Fulton Market", "price": "$$$", "cuisine": "Fusion", "lists": "Michelin Recommended, Eater 38, ChiMag BNR, Infatuation 25", "points": 4.15}, {"name": "Alinea", "neighborhood": "Lincoln Park", "price": "$$$$", "cuisine": "Experimental", "lists": "Michelin ★★, Eater 38, Infatuation 25", "points": 3.9}, {"name": "Oriole", "neighborhood": "Fulton Market", "price": "$$$$", "cuisine": "American", "lists": "Michelin ★★, Eater 38, Infatuation 25", "points": 3.9}, {"name": "Galit", "neighborhood": "Lincoln Park", "price": "$$$", "cuisine": "Middle Eastern", "lists": "Michelin ★, Eater 38, Infatuation 25", "points": 3.65}, {"name": "Esmé", "neighborhood": "Lincoln Park", "price": "$$$$", "cuisine": "American", "lists": "Michelin ★, Eater 38, ChiMag BNR", "points": 3.45}, {"name": "Akahoshi Ramen", "neighborhood": "Logan Square", "price": "$$", "cuisine": "Japanese", "lists": "Eater 38, ChiMag BNR, Infatuation 25", "points": 3.4}, {"name": "Pizz'Amici", "neighborhood": "West Town", "price": "$$", "cuisine": "Pizza", "lists": "Eater 38, ChiMag BNR, Infatuation 25", "points": 3.4}, {"name": "Taqueria Chingón", "neighborhood": "Logan Square", "price": "$", "cuisine": "Mexican", "lists": "Bib Gourmand, Eater 38, ChiMag BNR", "points": 3.2}, {"name": "Monteverde", "neighborhood": "West Loop", "price": "$$$", "cuisine": "Italian", "lists": "Michelin Recommended, Eater 38, Infatuation 25", "points": 3.15}, {"name": "Anelya", "neighborhood": "Avondale", "price": "$$$", "cuisine": "Ukrainian", "lists": "Michelin Recommended, ChiMag BNR, Infatuation 25", "points": 2.95}, {"name": "Kyoten Next Door", "neighborhood": "Logan Square", "price": "$$$$", "cuisine": "Sushi", "lists": "Michelin Recommended, ChiMag BNR, Infatuation 25", "points": 2.95}, {"name": "Obelix", "neighborhood": "River North", "price": "$$$", "cuisine": "French", "lists": "Michelin Recommended, ChiMag BNR, Infatuation 25", "points": 2.95}, {"name": "Oliver's", "neighborhood": "South Loop", "price": "$$$", "cuisine": "American", "lists": "Michelin Recommended, Eater 38, ChiMag BNR", "points": 2.95}, {"name": "Valhalla", "neighborhood": "Wicker Park", "price": "$$$$", "cuisine": "American", "lists": "Michelin Recommended, ChiMag BNR, Infatuation 25", "points": 2.95}, {"name": "Creepies", "neighborhood": "West Loop", "price": "$$$", "cuisine": "French", "lists": "Michelin Recommended, ChiMag BNR, Infatuation Hit", "points": 2.55}, {"name": "Ever", "neighborhood": "Fulton Market", "price": "$$$$", "cuisine": "American", "lists": "Michelin ★★, ChiMag BNR", "points": 2.5}, {"name": "Schwa", "neighborhood": "Wicker Park", "price": "$$$", "cuisine": "Experimental", "lists": "Michelin ★, Infatuation 25", "points": 2.45}, {"name": "Atelier", "neighborhood": "Lincoln Square", "price": "$$$", "cuisine": "American", "lists": "Michelin ★, ChiMag BNR", "points": 2.25}, {"name": "Feld", "neighborhood": "West Town", "price": "$$$$", "cuisine": "American", "lists": "Michelin ★, ChiMag BNR", "points": 2.25}, {"name": "Indienne", "neighborhood": "River North", "price": "$$$$", "cuisine": "Indian", "lists": "Michelin ★, ChiMag BNR", "points": 2.25}, {"name": "Birrieria Zaragoza Uptown", "neighborhood": "Uptown", "price": "$", "cuisine": "Mexican", "lists": "Bib Gourmand, Eater 38", "points": 2.2}, {"name": "Daisies", "neighborhood": "Logan Square", "price": "$$$", "cuisine": "Italian", "lists": "Bib Gourmand, Eater 38", "points": 2.2}, {"name": "Daisy's Po' Boy And Tavern", "neighborhood": "Hyde Park", "price": "$$", "cuisine": "Southern", "lists": "ChiMag BNR, Infatuation 25", "points": 2.2}, {"name": "Frontera Grill", "neighborhood": "River North", "price": "$$$", "cuisine": "Mexican", "lists": "Bib Gourmand, Eater 38", "points": 2.2}, {"name": "HaiSous", "neighborhood": "Pilsen", "price": "$$$", "cuisine": "Vietnamese", "lists": "Bib Gourmand, Eater 38", "points": 2.2}, {"name": "Lula Cafe", "neighborhood": "Logan Square", "price": "$$", "cuisine": "American", "lists": "Bib Gourmand, Eater 38", "points": 2.2}, {"name": "Mariscos San Pedro", "neighborhood": "Pilsen", "price": "$$", "cuisine": "Mexican", "lists": "ChiMag BNR, Infatuation 25", "points": 2.2}, {"name": "Mi Tocaya Antojería", "neighborhood": "Logan Square", "price": "$$", "cuisine": "Mexican", "lists": "Bib Gourmand, Eater 38", "points": 2.2}, {"name": "Mirra", "neighborhood": "Bucktown", "price": "$$$", "cuisine": "Italian", "lists": "Bib Gourmand, Eater 38", "points": 2.2}, {"name": "Sanders BBQ Supply Co", "neighborhood": "Beverly", "price": "$$", "cuisine": "Barbecue", "lists": "Eater 38, ChiMag BNR", "points": 2.2}, {"name": "Virtue", "neighborhood": "Hyde Park", "price": "$$$", "cuisine": "Southern", "lists": "Bib Gourmand, Eater 38", "points": 2.2}, {"name": "Boonie's Filipino Restaurant", "neighborhood": "North Center", "price": "$$", "cuisine": "Filipino", "lists": "Bib Gourmand, ChiMag BNR", "points": 2.0}, {"name": "Lardon", "neighborhood": "Logan Square", "price": "$$", "cuisine": "American", "lists": "Bib Gourmand, ChiMag BNR", "points": 2.0}, {"name": "Milli By Metric", "neighborhood": "Avondale", "price": "$", "cuisine": "Bakery", "lists": "Eater 38, Infatuation Hit", "points": 2.0}, {"name": "Sochi", "neighborhood": "Lincoln Park", "price": "$$$", "cuisine": "Russian", "lists": "Bib Gourmand, ChiMag BNR", "points": 2.0}, {"name": "Avec", "neighborhood": "West Loop", "price": "$$$", "cuisine": "Mediterranean", "lists": "Michelin Recommended, Infatuation 25", "points": 1.95}, {"name": "Bavette's", "neighborhood": "River North", "price": "$$$$", "cuisine": "Steakhouse", "lists": "Michelin Recommended, Infatuation 25", "points": 1.95}, {"name": "Rose Mary", "neighborhood": "Fulton Market", "price": "$$$", "cuisine": "Croatian", "lists": "Michelin Recommended, Eater 38", "points": 1.95}, {"name": "Atsumeru", "neighborhood": "West Town", "price": "$$$$", "cuisine": "Fusion", "lists": "ChiMag BNR, Infatuation Hit", "points": 1.8}, {"name": "Crying Tiger", "neighborhood": "River North", "price": "$$$", "cuisine": "Thai", "lists": "ChiMag BNR, Infatuation Hit", "points": 1.8}, {"name": "Sho Omakase", "neighborhood": "Old Town", "price": "$$$$", "cuisine": "Sushi", "lists": "ChiMag BNR, Infatuation Hit", "points": 1.8}, {"name": "Jinsei Motto", "neighborhood": "Logan Square", "price": "$$$$", "cuisine": "Sushi", "lists": "ChiMag BNR, Infatuation Hit", "points": 1.8}, {"name": "Bayan Ko", "neighborhood": "Ravenswood Manor", "price": "$$", "cuisine": "Fusion", "lists": "Michelin Recommended, ChiMag BNR", "points": 1.75}, {"name": "Warlord", "neighborhood": "Albany Park", "price": "$$$", "cuisine": "American", "lists": "Michelin Recommended, ChiMag BNR", "points": 1.75}, {"name": "Elina's", "neighborhood": "West Town", "price": "$$$", "cuisine": "Italian", "lists": "Michelin Recommended, ChiMag BNR", "points": 1.75}, {"name": "The Coach House bby Wazwan", "neighborhood": "Wicker Park", "price": "$$$$", "cuisine": "Southeast Asian", "lists": "Michelin Recommended, ChiMag BNR", "points": 1.75}, {"name": "John's Food and Wine", "neighborhood": "Lincoln Park", "price": "$$$", "cuisine": "American", "lists": "Michelin Recommended, ChiMag BNR", "points": 1.75}, {"name": "Yao Yao", "neighborhood": "Chinatown", "price": "$$", "cuisine": "Chinese", "lists": "Michelin Recommended, ChiMag BNR", "points": 1.75}, {"name": "Itoko", "neighborhood": "Lakeview", "price": "$$$", "cuisine": "Japanese", "lists": "Michelin Recommended, ChiMag BNR", "points": 1.75}, {"name": "Boka", "neighborhood": "Lincoln Park", "price": "$$$$", "cuisine": "American", "lists": "Michelin ★", "points": 1.25}, {"name": "EL Ideas", "neighborhood": "Douglas Park", "price": "$$$$", "cuisine": "American", "lists": "Michelin ★", "points": 1.25}, {"name": "Elske", "neighborhood": "West Loop", "price": "$$$", "cuisine": "Scandinavian", "lists": "Michelin ★", "points": 1.25}, {"name": "Mako", "neighborhood": "West Loop", "price": "$$$$", "cuisine": "Sushi", "lists": "Michelin ★", "points": 1.25}, {"name": "Moody Tongue", "neighborhood": "South Loop", "price": "$$$$", "cuisine": "American", "lists": "Michelin ★", "points": 1.25}, {"name": "Next", "neighborhood": "West Loop", "price": "$$$$", "cuisine": "Experimental", "lists": "Michelin ★", "points": 1.25}, {"name": "Sepia", "neighborhood": "West Loop", "price": "$$$", "cuisine": "American", "lists": "Michelin ★", "points": 1.25}, {"name": "Topolobampo", "neighborhood": "River North", "price": "$$$$", "cuisine": "Mexican", "lists": "Michelin ★", "points": 1.25}, {"name": "Asador Bastian", "neighborhood": "West Town", "price": "$$$$", "cuisine": "Spanish", "lists": "Eater 38", "points": 1.2}, {"name": "Calumet Fisheries", "neighborhood": "South Shore", "price": "$", "cuisine": "Seafood", "lists": "Eater 38", "points": 1.2}, {"name": "Carnitas Uruapan", "neighborhood": "Pilsen", "price": "$", "cuisine": "Mexican", "lists": "Eater 38", "points": 1.2}, {"name": "Chubby Boys", "neighborhood": "West Loop", "price": "$", "cuisine": "Hot Dog / Burgers", "lists": "Eater 38", "points": 1.2}, {"name": "Del Sur Bakery", "neighborhood": "Lincoln Square", "price": "$", "cuisine": "Bakery", "lists": "Eater 38", "points": 1.2}, {"name": "Harold's Chicken Shack", "neighborhood": "Chatham", "price": "$", "cuisine": "Fried Chicken", "lists": "Eater 38", "points": 1.2}, {"name": "Hermosa", "neighborhood": "Galewood", "price": "$", "cuisine": "Cambodian", "lists": "Eater 38", "points": 1.2}, {"name": "J.P. Graziano Grocery & Sub Shop", "neighborhood": "West Loop", "price": "$", "cuisine": "Sandwiches", "lists": "Infatuation 25", "points": 1.2}, {"name": "JM Seafood", "neighborhood": "Bridgeport", "price": "$$", "cuisine": "Chinese", "lists": "Infatuation 25", "points": 1.2}, {"name": "Johnnie's Beef", "neighborhood": "Elmwood Park", "price": "$", "cuisine": "Sandwiches", "lists": "Eater 38", "points": 1.2}, {"name": "Kyoten", "neighborhood": "Logan Square", "price": "$$$$", "cuisine": "Sushi", "lists": "Eater 38", "points": 1.2}, {"name": "Manny's Cafeteria and Delicatessen", "neighborhood": "South Loop", "price": "$$", "cuisine": "Jewish American", "lists": "Eater 38", "points": 1.2}, {"name": "Milly's Pizza In The Pan", "neighborhood": "West Town", "price": "$$", "cuisine": "Pizza", "lists": "Infatuation 25", "points": 1.2}, {"name": "Omarcito's Latin Cafe", "neighborhood": "Logan Square", "price": "$", "cuisine": "Puerto Rican", "lists": "Infatuation 25", "points": 1.2}, {"name": "Redhot Ranch", "neighborhood": "Bucktown", "price": "$", "cuisine": "Hot Dog / Burgers", "lists": "Eater 38", "points": 1.2}, {"name": "Santa Masa Tamaleria", "neighborhood": "Dunning", "price": "$", "cuisine": "Mexican", "lists": "Eater 38", "points": 1.2}, {"name": "The Duck Inn", "neighborhood": "Bridgeport", "price": "$$", "cuisine": "Gastropub", "lists": "Eater 38", "points": 1.2}, {"name": "The Momo World", "neighborhood": "University Village", "price": "$", "cuisine": "Nepali", "lists": "Infatuation 25", "points": 1.2}, {"name": "Xocome Antojeria", "neighborhood": "Archer Heights", "price": "$", "cuisine": "Mexican", "lists": "Infatuation 25", "points": 1.2}, {"name": "Cellar Door Provisions", "neighborhood": "Logan Square", "price": "$$$", "cuisine": "American", "lists": "Bib Gourmand", "points": 1.0}, {"name": "Chef's Special Cocktail Bar", "neighborhood": "Bucktown", "price": "$$", "cuisine": "Fusion", "lists": "Bib Gourmand", "points": 1.0}, {"name": "Chilam Balam", "neighborhood": "Lakeview", "price": "$$", "cuisine": "Mexican", "lists": "Bib Gourmand", "points": 1.0}, {"name": "Ciccio Mio", "neighborhood": "River North", "price": "$$$", "cuisine": "Italian", "lists": "Bib Gourmand", "points": 1.0}, {"name": "Ghin Khao", "neighborhood": "The Loop", "price": "$$", "cuisine": "Thai", "lists": "Bib Gourmand", "points": 1.0}, {"name": "Giant", "neighborhood": "Logan Square", "price": "$$$", "cuisine": "American", "lists": "Bib Gourmand", "points": 1.0}, {"name": "Gilt Bar", "neighborhood": "River North", "price": "$$$", "cuisine": "Gastropub", "lists": "Bib Gourmand", "points": 1.0}, {"name": "Girl & The Goat", "neighborhood": "West Loop", "price": "$$$", "cuisine": "American", "lists": "Bib Gourmand", "points": 1.0}, {"name": "Kie-Gol-Lanee", "neighborhood": "Uptown", "price": "$$", "cuisine": "Mexican", "lists": "Bib Gourmand", "points": 1.0}, {"name": "Longman & Eagle", "neighborhood": "Logan Square", "price": "$$$", "cuisine": "American", "lists": "Bib Gourmand", "points": 1.0}, {"name": "Mahari", "neighborhood": "Hyde Park", "price": "$$", "cuisine": "African", "lists": "ChiMag BNR", "points": 1.0}, {"name": "Mott St.", "neighborhood": "Wicker Park", "price": "$$", "cuisine": "Fusion", "lists": "Bib Gourmand", "points": 1.0}, {"name": "Munno Pizzeria & Bistro", "neighborhood": "Lincoln Park", "price": "$$", "cuisine": "Italian", "lists": "Bib Gourmand", "points": 1.0}, {"name": "Nine Garden", "neighborhood": "Chinatown", "price": "$$", "cuisine": "Chinese", "lists": "ChiMag BNR", "points": 1.0}, {"name": "Noodles Party", "neighborhood": "Mayfair", "price": "$", "cuisine": "Fusion", "lists": "ChiMag BNR", "points": 1.0}, {"name": "Omakase Box", "neighborhood": "Logan Square", "price": "$$$", "cuisine": "Sushi", "lists": "ChiMag BNR", "points": 1.0}, {"name": "Perilla", "neighborhood": "West Loop", "price": "$$$", "cuisine": "Korean", "lists": "Bib Gourmand", "points": 1.0}, {"name": "Petite Edith", "neighborhood": "River North", "price": "$$$", "cuisine": "French", "lists": "ChiMag BNR", "points": 1.0}, {"name": "Pleasant House Pub", "neighborhood": "Pilsen", "price": "$$", "cuisine": "British", "lists": "Bib Gourmand", "points": 1.0}, {"name": "Sifr", "neighborhood": "River North", "price": "$$$", "cuisine": "Middle Eastern", "lists": "Bib Gourmand", "points": 1.0}, {"name": "Sol de Mexico", "neighborhood": "Cragin", "price": "$$", "cuisine": "Mexican", "lists": "Bib Gourmand", "points": 1.0}, {"name": "Superkhana International", "neighborhood": "Logan Square", "price": "$$", "cuisine": "Indian", "lists": "Bib Gourmand", "points": 1.0}, {"name": "Table, Donkey and Stick", "neighborhood": "Ukrainian Village", "price": "$$$", "cuisine": "Balkan", "lists": "Bib Gourmand", "points": 1.0}, {"name": "Zarella Pizzeria & Taverna", "neighborhood": "River North", "price": "$$$", "cuisine": "Italian", "lists": "ChiMag BNR", "points": 1.0}, {"name": "Union", "neighborhood": "Lakeview", "price": "$$$", "cuisine": "Gastropub", "lists": "Bib Gourmand", "points": 1.0}, {"name": "Minyoli", "neighborhood": "Lakeview", "price": "$$$", "cuisine": "Italian", "lists": "ChiMag BNR", "points": 1.0}, {"name": "Tre Dita", "neighborhood": "West Loop", "price": "$$$$", "cuisine": "Italian", "lists": "ChiMag BNR", "points": 1.0}, {"name": "Void", "neighborhood": "Wicker Park", "price": "$$$", "cuisine": "American", "lists": "ChiMag BNR", "points": 1.0}, {"name": "Stumara", "neighborhood": "River North", "price": "$$$", "cuisine": "Italian", "lists": "ChiMag BNR", "points": 1.0}, {"name": "Thattu", "neighborhood": "Avondale", "price": "$$$", "cuisine": "Indian", "lists": "ChiMag BNR", "points": 1.0}, {"name": "DeNucci's", "neighborhood": "River North", "price": "$$$", "cuisine": "Italian", "lists": "ChiMag BNR", "points": 1.0}, {"name": "Tuk Tuk Thai Isan Street Food", "neighborhood": "Ravenswood", "price": "$$", "cuisine": "Thai", "lists": "ChiMag BNR", "points": 1.0}, {"name": "Maman Zari", "neighborhood": "Andersonville", "price": "$$$", "cuisine": "Iranian", "lists": "ChiMag BNR", "points": 1.0}, {"name": "The Omakase Room at Sushi-San", "neighborhood": "River North", "price": "$$$$", "cuisine": "Sushi", "lists": "ChiMag BNR", "points": 1.0}, {"name": "Pompette", "neighborhood": "Andersonville", "price": "$$$", "cuisine": "Wine Bar", "lists": "ChiMag BNR", "points": 1.0}, {"name": "Loaf Lounge", "neighborhood": "West Town", "price": "$$", "cuisine": "Bakery", "lists": "ChiMag BNR", "points": 1.0}, {"name": "Roux", "neighborhood": "Logan Square", "price": "$$$", "cuisine": "Southern", "lists": "ChiMag BNR", "points": 1.0}, {"name": "Bazaar Meat", "neighborhood": "River North", "price": "$$$$", "cuisine": "Steakhouse", "lists": "ChiMag BNR", "points": 1.0}, {"name": "Evette's", "neighborhood": "Logan Square", "price": "$$", "cuisine": "American", "lists": "ChiMag BNR", "points": 1.0}, {"name": "Mama Delia", "neighborhood": "Pilsen", "price": "$$$", "cuisine": "Mediterranean", "lists": "ChiMag BNR", "points": 1.0}, {"name": "Tengoku Aburiya", "neighborhood": "West Loop", "price": "$$$", "cuisine": "Japanese", "lists": "ChiMag BNR", "points": 1.0}, {"name": "Bar Tutto", "neighborhood": "Fulton Market", "price": "$$$", "cuisine": "Italian", "lists": "Infatuation Hit", "points": 0.8}, {"name": "Le Mistral", "neighborhood": "Lincoln Park", "price": "$$$", "cuisine": "Wine Bar", "lists": "Infatuation Hit", "points": 0.8}, {"name": "The Radicle", "neighborhood": "Logan Square", "price": "$$$", "cuisine": "Bar", "lists": "Infatuation Hit", "points": 0.8}, {"name": "Zaab E Lee", "neighborhood": "Albany Park", "price": "$$", "cuisine": "Thai", "lists": "Infatuation Hit", "points": 0.8}, {"name": "Port Union", "neighborhood": "Wicker Park", "price": "$$$", "cuisine": "American", "lists": "Infatuation Hit", "points": 0.8}, {"name": "All Well", "neighborhood": "Logan Square", "price": "$$", "cuisine": "Bar", "lists": "Infatuation Hit", "points": 0.8}, {"name": "Bad Butter", "neighborhood": "Bucktown", "price": "$$", "cuisine": "Sandwiches", "lists": "Infatuation Hit", "points": 0.8}, {"name": "Culebra", "neighborhood": "Logan Square", "price": "$$", "cuisine": "Colombian", "lists": "Infatuation Hit", "points": 0.8}, {"name": "Shorty's", "neighborhood": "Wicker Park", "price": "$$", "cuisine": "Bar", "lists": "Infatuation Hit", "points": 0.8}, {"name": "Da Local Boy", "neighborhood": "The Loop", "price": "$$", "cuisine": "Hawaiian", "lists": "Infatuation Hit", "points": 0.8}, {"name": "Spice by CMB", "neighborhood": "Avondale", "price": "$$", "cuisine": "Sri Lankan", "lists": "Infatuation Hit", "points": 0.8}, {"name": "Txa Txa Club", "neighborhood": "Logan Square", "price": "$$$", "cuisine": "Spanish", "lists": "Infatuation Hit", "points": 0.8}, {"name": "Bar Bambi", "neighborhood": "West Town", "price": "$$$", "cuisine": "Bar", "lists": "Infatuation Hit", "points": 0.8}, {"name": "Haru Haru", "neighborhood": "Wicker Park", "price": "$$", "cuisine": "Korean", "lists": "Infatuation Hit", "points": 0.8}, {"name": "Ox Bar & Hearth", "neighborhood": "Lincoln Park", "price": "$$$", "cuisine": "American", "lists": "Infatuation Hit", "points": 0.8}, {"name": "Casa Yari", "neighborhood": "Humboldt Park", "price": "$$", "cuisine": "Puerto Rican", "lists": "Infatuation Hit", "points": 0.8}, {"name": "Andros Taverna", "neighborhood": "Logan Square", "price": "$$$", "cuisine": "Greek", "lists": "Michelin Recommended", "points": 0.75}, {"name": "MFK", "neighborhood": "Lakeview", "price": "$$$", "cuisine": "Spanish", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Momotaro", "neighborhood": "West Loop", "price": "$$$$", "cuisine": "Japanese", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Jeong", "neighborhood": "West Town", "price": "$$$$", "cuisine": "Korean", "lists": "Michelin Recommended", "points": 0.75}, {"name": "ROOP Chicago", "neighborhood": "West Loop", "price": "$$$$", "cuisine": "Indian", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Swift & Sons", "neighborhood": "West Loop", "price": "$$$$", "cuisine": "Steakhouse", "lists": "Michelin Recommended", "points": 0.75}, {"name": "RPM Steak", "neighborhood": "River North", "price": "$$$$", "cuisine": "Steakhouse", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Chez Joel", "neighborhood": "Little Italy", "price": "$$$", "cuisine": "French", "lists": "Michelin Recommended", "points": 0.75}, {"name": "S.K.Y", "neighborhood": "Wicker Park", "price": "$$$", "cuisine": "American", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Provaré", "neighborhood": "River North", "price": "$$$", "cuisine": "Italian", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Maple & Ash", "neighborhood": "Gold Coast", "price": "$$$$", "cuisine": "Steakhouse", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Astor Club: Chef's Table", "neighborhood": "Gold Coast", "price": "$$$$", "cuisine": "American", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Alla Vita", "neighborhood": "Bucktown", "price": "$$$", "cuisine": "Italian", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Chicago Cut", "neighborhood": "River North", "price": "$$$$", "cuisine": "Steakhouse", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Ina Mae", "neighborhood": "Wicker Park", "price": "$$", "cuisine": "Southern", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Gaijin", "neighborhood": "Pilsen", "price": "$$$", "cuisine": "Japanese", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Tzuco", "neighborhood": "Streeterville", "price": "$$$", "cuisine": "Mexican", "lists": "Michelin Recommended", "points": 0.75}, {"name": "The Perch", "neighborhood": "Logan Square", "price": "$$$", "cuisine": "American", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Azul Mariscos + Muelle", "neighborhood": "Avondale", "price": "$$$", "cuisine": "Mexican", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Prime & Provisions", "neighborhood": "The Loop", "price": "$$$$", "cuisine": "Steakhouse", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Hugo's Frog Bar & Fish House", "neighborhood": "Gold Coast", "price": "$$$", "cuisine": "Seafood", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Beity", "neighborhood": "Humboldt Park", "price": "$$", "cuisine": "Palestinian", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Lou Mitchell's", "neighborhood": "West Loop", "price": "$$", "cuisine": "Diner", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Coalfire", "neighborhood": "West Town", "price": "$$", "cuisine": "Pizza", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Omakase Yume", "neighborhood": "West Town", "price": "$$$$", "cuisine": "Sushi", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Kumiko", "neighborhood": "West Loop", "price": "$$$$", "cuisine": "Cocktail Bar", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Pizza Friendly Pizza", "neighborhood": "Ukrainian Village", "price": "$", "cuisine": "Pizza", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Osteria Langhe", "neighborhood": "Logan Square", "price": "$$$", "cuisine": "Italian", "lists": "Michelin Recommended", "points": 0.75}, {"name": "GG's Chicken Shop", "neighborhood": "Logan Square", "price": "$$", "cuisine": "Fried Chicken", "lists": "Michelin Recommended", "points": 0.75}, {"name": "The Gundis", "neighborhood": "Uptown", "price": "$$", "cuisine": "Kurdish", "lists": "Michelin Recommended", "points": 0.75}, {"name": "North Pond", "neighborhood": "Lincoln Park", "price": "$$$", "cuisine": "American", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Tied House", "neighborhood": "Lincoln Square", "price": "$$$", "cuisine": "American", "lists": "Michelin Recommended", "points": 0.75}, {"name": "Demera", "neighborhood": "Uptown", "price": "$$", "cuisine": "Ethiopian", "lists": "Michelin Recommended", "points": 0.75}];
+const MAX_PTS = Math.max(...RAW.map(r => r.points));
+
+// ── State ──
+const selectedNbhd    = new Set();
+const selectedCuisine = new Set();
+const selectedPrice   = new Set();
+let sortCol = 'rank', sortDir = 1;
+
+let restaurants = RAW.map((r, i, arr) => {
+  const rank = arr.filter(x => x.points > r.points).length + 1;
+  return {...r, origRank: rank};
+});
+
+// ── Helpers ──
+function priceClass(p) { return {'$':'price-1','$$':'price-2','$$$':'price-3','$$$$':'price-4'}[p]||''}
+
+function parseTags(lists) {
+  if (!lists) return '';
+  return lists.split(',').map(s => s.trim()).filter(Boolean).map(p => {
+    let cls = 'tag';
+    if (p.includes('★★★')) cls += ' michelin-3';
+    else if (p.includes('★★')) cls += ' michelin-2';
+    else if (p.includes('★')) cls += ' michelin-1';
+    else if (p === 'Bib Gourmand') cls += ' bib';
+    else if (p === 'Eater 38') cls += ' eater';
+    else if (p.startsWith('Infatuation')) cls += ' infatuation';
+    else if (p === 'ChiMag BNR') cls += ' chimag';
+    else if (p === 'NA 50 Best') cls += ' na50';
+    return `<span class="${cls}">${p}</span>`;
+  }).join('');
+}
+
+// ── Build rows ──
+function buildRows() {
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  restaurants.forEach(r => {
+    const pct = (r.points / MAX_PTS * 100).toFixed(1);
+    const tr  = document.createElement('tr');
+    // Store original-case values for exact Set matching
+    tr.dataset.nbhd    = r.neighborhood;
+    tr.dataset.cuisine = r.cuisine;
+    tr.dataset.price   = r.price;
+    tr.dataset.rank    = r.origRank;
+    tr.dataset.points  = r.points;
+    // Lowercase separate for text search only
+    tr.dataset.searchText = (r.name + ' ' + r.neighborhood + ' ' + r.cuisine).toLowerCase();
+    tr.innerHTML = `
+      <td class="td-rank"><span class="${r.origRank<=10?'rank-top':''}">${r.origRank}</span></td>
+      <td class="td-name"><div class="rest-name">${r.name}</div></td>
+      <td class="td-nbhd">${r.neighborhood}</td>
+      <td class="td-price"><span class="price ${priceClass(r.price)}">${r.price}</span></td>
+      <td class="td-cuisine">${r.cuisine}</td>
+      <td class="td-lists"><div class="tags">${parseTags(r.lists)}</div></td>
+      <td class="td-points">
+        <div class="points-val">${r.points.toFixed(2)}</div>
+        <div class="points-bar-wrap"><div class="points-bar" style="width:${pct}%"></div></div>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+  applyFilters();
+}
+
+// ── Filter ──
+function applyFilters() {
+  const q = document.getElementById('search').value.toLowerCase().trim();
+  let visible = 0;
+  document.querySelectorAll('#tbody tr').forEach(tr => {
+    const match =
+      (!q                 || tr.dataset.searchText.includes(q)) &&
+      (!selectedNbhd.size    || selectedNbhd.has(tr.dataset.nbhd)) &&
+      (!selectedCuisine.size || selectedCuisine.has(tr.dataset.cuisine)) &&
+      (!selectedPrice.size   || selectedPrice.has(tr.dataset.price));
+    tr.classList.toggle('hidden', !match);
+    if (match) visible++;
+  });
+  document.getElementById('count').textContent = visible;
+  document.getElementById('no-results').style.display = visible === 0 ? 'block' : 'none';
+}
+
+// ── Sort ──
+function sortBy(col) {
+  if (sortCol === col) sortDir *= -1;
+  else { sortCol = col; sortDir = col === 'rank' ? 1 : (col === 'points' ? -1 : 1); }
+  restaurants.sort((a, b) => {
+    const av = col === 'rank' ? a.origRank : col === 'points' ? a.points : (a[col]||'').toLowerCase();
+    const bv = col === 'rank' ? b.origRank : col === 'points' ? b.points : (b[col]||'').toLowerCase();
+    return av < bv ? -sortDir : av > bv ? sortDir : 0;
+  });
+  document.querySelectorAll('th[data-col]').forEach(th => {
+    th.classList.toggle('sorted', th.dataset.col === col);
+    const arrow = th.querySelector('.sort-arrow');
+    if (arrow) arrow.textContent = th.dataset.col === col ? (sortDir===1?'▲':'▼') : '';
+  });
+  buildRows();
+}
+
+// ── Multi-select ──
+function makeMultiSelect(wrapperId, defaultLabel, selectedSet) {
+  const wrap     = document.getElementById(wrapperId + '-wrap');
+  const trigger  = document.getElementById(wrapperId + '-trigger');
+  const dropdown = document.getElementById(wrapperId + '-dropdown');
+  const search   = dropdown.querySelector('.ms-search');
+  const list     = dropdown.querySelector('.ms-list');
+  const empty    = dropdown.querySelector('.ms-empty');
+  const label    = trigger.querySelector('.ms-trigger-label');
+
+  function getOpts() { return list.querySelectorAll('.ms-option'); }
+
+  function updateTrigger() {
+    const badge = trigger.querySelector('.ms-badge');
+    if (badge) badge.remove();
+    label.textContent = defaultLabel;
+    if (selectedSet.size > 0) {
+      const b = document.createElement('span');
+      b.className = 'ms-badge'; b.textContent = selectedSet.size;
+      trigger.insertBefore(b, trigger.querySelector('.ms-chevron'));
+    }
+  }
+
+  trigger.addEventListener('click', e => {
+    e.stopPropagation();
+    const wasOpen = dropdown.classList.contains('open');
+    document.querySelectorAll('.ms-dropdown.open').forEach(d => {
+      d.classList.remove('open');
+      d.closest('.ms-wrap').querySelector('.ms-trigger').classList.remove('open');
+    });
+    if (!wasOpen) {
+      dropdown.classList.add('open');
+      trigger.classList.add('open');
+      if (search) { search.value = ''; search.dispatchEvent(new Event('input')); search.focus(); }
+    }
+  });
+
+  list.addEventListener('click', e => {
+    const opt = e.target.closest('.ms-option');
+    if (!opt || opt.classList.contains('hidden-opt')) return;
+    const val = opt.dataset.val;
+    if (selectedSet.has(val)) { selectedSet.delete(val); opt.classList.remove('checked'); }
+    else                       { selectedSet.add(val);    opt.classList.add('checked');    }
+    updateTrigger();
+    applyFilters();
+  });
+
+  dropdown.querySelectorAll('.ms-action-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (btn.dataset.action === 'clear') {
+        selectedSet.clear();
+        getOpts().forEach(o => o.classList.remove('checked'));
+      } else {
+        getOpts().forEach(o => {
+          if (!o.classList.contains('hidden-opt')) {
+            selectedSet.add(o.dataset.val); o.classList.add('checked');
+          }
+        });
+      }
+      updateTrigger(); applyFilters();
+    });
+  });
+
+  if (search) {
+    search.addEventListener('input', () => {
+      const q = search.value.toLowerCase();
+      let any = false;
+      getOpts().forEach(o => {
+        const show = !q || o.querySelector('span').textContent.toLowerCase().includes(q);
+        o.classList.toggle('hidden-opt', !show);
+        if (show) any = true;
+      });
+      empty.style.display = any ? 'none' : 'block';
+    });
+    search.addEventListener('click', e => e.stopPropagation());
+  }
+}
+
+makeMultiSelect('ms-nbhd',    'Neighborhood', selectedNbhd);
+makeMultiSelect('ms-cuisine', 'Cuisine',      selectedCuisine);
+makeMultiSelect('ms-price',   'Price',        selectedPrice);
+
+document.addEventListener('click', () => {
+  document.querySelectorAll('.ms-dropdown.open').forEach(d => {
+    d.classList.remove('open');
+    d.closest('.ms-wrap').querySelector('.ms-trigger').classList.remove('open');
+  });
+});
+
+document.getElementById('search').addEventListener('input', applyFilters);
+document.querySelectorAll('th[data-col]').forEach(th => {
+  th.addEventListener('click', () => sortBy(th.dataset.col));
+});
+
+// Init
+buildRows();
+</script>
+</body>
+</html>
