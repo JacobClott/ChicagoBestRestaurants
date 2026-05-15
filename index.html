@@ -423,6 +423,7 @@ function makeMultiSelect(wrapperId, defaultLabel, selectedSet) {
   });
 
   list.addEventListener('click', e => {
+    e.stopPropagation();
     const opt = e.target.closest('.ms-option');
     if (!opt || opt.classList.contains('hidden-opt')) return;
     const val = opt.dataset.val;
